@@ -7,31 +7,24 @@
 
     let userLat = null;
     let userLon = null;
-    let distance = null;
-    let bearing = null;
-    let insideCircle = false;
-
     let watchId;
 
+   $: distance = userLat && userLon
+    ? getDistance({ latitude: userLat, longitude: userLon }, target)
+    : null;
+
+$: bearing = userLat && userLon
+    ? getGreatCircleBearing({ latitude: userLat, longitude: userLon }, target)
+    : null;
+
+$: insideCircle = userLat && userLon
+    ? isPointWithinRadius({ latitude: userLat, longitude: userLon }, target, radiusMeters)
+    : false;
+
+$: arrowRotation = bearing ? bearing % 360 : 0;
     function updatePosition(pos) {
         userLat = pos.coords.latitude;
         userLon = pos.coords.longitude;
-
-        distance = getDistance(
-            { latitude: userLat, longitude: userLon },
-            target
-        );
-
-        bearing = getGreatCircleBearing(
-            { latitude: userLat, longitude: userLon },
-            target
-        );
-
-        insideCircle = isPointWithinRadius(
-            { latitude: userLat, longitude: userLon },
-            target,
-            radiusMeters
-        );
     }
 
     function geoError(err) {
@@ -50,9 +43,6 @@
             if (watchId) navigator.geolocation.clearWatch(watchId);
         };
     });
-
-    // 🔄 Reactive arrow rotation (Svelte 4 style)
-    $: arrowRotation = (bearing ?? 0) % 360;
 </script>
 
 <main>
@@ -63,17 +53,13 @@
         {#if userLat && userLon}
             <p>Distance to target: {distance} m</p>
             <p>Bearing to target: {bearing}°</p>
-            <p>Status:
-                {insideCircle
-                    ? "Inside 5 m radius"
-                    : "Outside radius"}
-            </p>
+            <p>Status: {insideCircle ? "Inside 5 m radius" : "Outside radius"}</p>
         {:else}
             <p>Waiting for GPS signal…</p>
         {/if}
     </div>
 
-    <!-- ✅ Arrow that rotates -->
+    <!-- Arrow points toward target -->
     <div class="mb-6">
         <div
             class="text-5xl transition-transform duration-200"
